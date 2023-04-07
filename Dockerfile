@@ -1,7 +1,6 @@
 # First stage: Install and configure MongoDB
 FROM mongo:latest AS mongo
 RUN mkdir -p /data/db
-COPY mongo.conf /etc/mongo.conf
 CMD ["mongod", "--config", "/etc/mongo.conf"]
 
 # Second stage: Build and run Node.js application

@@ -4,9 +4,11 @@ services:
   app:
     build: .
     ports:
-      - "3080:3080"
+      - "5804:5804"
     depends_on:
       - mongo
+    environment:
+      - PORT=5804
     networks:
       - my-network
 
