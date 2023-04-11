@@ -1,10 +1,11 @@
 const express = require('express');
 const MongoClient = require('mongodb').MongoClient;
 const axios = require('axios');
+const gamedig = require('gamedig');
 
 const app = express();
 const port = process.env.PORT || 3080;
-const url = 'mongodb://mongo:27017/';
+const url = 'mongodb://localhost:27017/';
 const dbName = 'servers';
 const serverCollectionName = 'server_data';
 const mapCollectionName = 'map_data';
@@ -19,9 +20,24 @@ const queryUrl = async () => {
         console.error(error);
     }
 };
+const queryServer = async (ip, port) => {
+    console.log('Querying server ' + ip + ':' + port);
+    try {
+        const response = await gamedig.query({
+            type: 'garrysmod',
+            host: ip,
+            port: port
+        });
+        const data = response.players;
+        console.log("Succsess " + ip + ":" + port);
+        return data;
+    } catch (error) {
+        console.error(error);
+    }
+};
 
 const updateServerDatabase = async () => {
-    console.log('Updating server database' + new Date().toLocaleTimeString());
+    console.log('\nUpdating server database ' + new Date().toLocaleTimeString());
     const client = new MongoClient(url, { useUnifiedTopology: true });
     try {
         await client.connect();
@@ -30,6 +46,7 @@ const updateServerDatabase = async () => {
         const data = await queryUrl();
         
         for (const [key, value] of Object.entries(data)) {
+            const players = await queryServer( value.IP.split(':')[0], value.IP.split(':')[1] );
             const serverData = {
                 serverShortName: value.ServerShortName,
                 ip: value.IP,
@@ -37,7 +54,9 @@ const updateServerDatabase = async () => {
                 playerCount: value.PlayerCount,
                 maxPlayers: value.MaxPlayers,
                 serverName: value.ServerName,
-                extraInfo: value.ExtraInfo || ''
+                extraInfo: value.ExtraInfo || '',
+                players: players || [],
+                lastUpdated: new Date()
             };
             
             const query = { serverShortName: serverData.serverShortName };
@@ -54,7 +73,7 @@ const updateServerDatabase = async () => {
 };
 
 const updateMapDatabase = async () => {
-    console.log('Updating map database' + new Date().toLocaleTimeString());
+    console.log('Updating map database ' + new Date().toLocaleTimeString() + '\n');
     const client = new MongoClient(url, { useUnifiedTopology: true });
     try {
         await client.connect();
@@ -115,6 +134,7 @@ app.get('/serverdata', async (req, res) => {
         const collection = db.collection(serverCollectionName);
         const data = await collection.find().toArray();
         res.send(data);
+        console.log("request for data on " + data.length + " servers completed")
     } catch (error) {
         console.error(error);
     } finally {
@@ -130,11 +150,12 @@ app.get('/mapdata', async (req, res) => {
         const collection = db.collection(mapCollectionName);
         const data = await collection.find().toArray();
         res.send(data);
+        console.log("request for data on " + data.length + " maps completed")
     } catch (error) {
         console.error(error);
     }
 });
 
 app.listen(port, () => {
-    console.log(`Listening at http://localhost:${port}`);
+    console.log(`Listening at http://localhost:${port}\nUpdate interval: 1 minute\n`);
 });
