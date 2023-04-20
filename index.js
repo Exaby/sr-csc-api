@@ -4,7 +4,7 @@ const axios = require('axios');
 
 const app = express();
 const port = process.env.PORT || 3080;
-const url = 'mongodb://localhost:27017/';
+const url = process.env.MONGO || 'mongodb://localhost:27017/';
 const dbName = 'servers';
 const serverCollectionName = 'server_data';
 const mapCollectionName = 'map_data';
