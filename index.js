@@ -1,7 +1,6 @@
 const express = require('express');
 const MongoClient = require('mongodb').MongoClient;
 const axios = require('axios');
-const gamedig = require('gamedig');
 
 const app = express();
 const port = process.env.PORT || 3080;
@@ -20,16 +19,11 @@ const queryUrl = async () => {
         console.error(error);
     }
 };
-const queryServer = async (ip, port) => {
-    console.log('Querying server ' + ip + ':' + port);
+const queryServer = async (name) => {
     try {
-        const response = await gamedig.query({
-            type: 'garrysmod',
-            host: ip,
-            port: port
-        });
-        const data = response.players;
-        console.log("Succsess " + ip + ":" + port);
+        let data = [];
+        const response = await axios.get('https://csc.sunrust.org/public/servers/' + name);
+        data = response.data;
         return data;
     } catch (error) {
         console.error(error);
@@ -47,11 +41,21 @@ const updateServerDatabase = async () => {
         const data = await queryUrl();
         const serverData = [];
         for (const [key, value] of Object.entries(data)) {
+            const serverShortName = value.ServerShortName;
+            const cscServerData = await queryServer(serverShortName);
+            const playerList = cscServerData.PlayerList;
+            const teamList = cscServerData.TeamList;
+            console.log(teamList)
             const server = {
-                serverShortName: value.ServerShortName,
                 serverName: value.ServerName,
+                serverShortName: value.ServerShortName,
+                extraInfo: value.ExtraInfo,
                 ip: value.IP,
-                players: await queryServer(value.Ip.split(':')[0], value.Ip.split(':')[1]),
+                map: value.Map,
+                playerCount: value.PlayerCount,
+                maxPlayers: value.MaxPlayers,
+                playerList: playerList,
+                teamList: teamList,
                 lastUpdated: new Date()
             };
             serverData.push(server);
