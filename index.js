@@ -37,39 +37,34 @@ const queryServer = async (ip, port) => {
 };
 
 const updateServerDatabase = async () => {
-    console.log('\nUpdating server database ' + new Date().toLocaleTimeString());
+    console.log('\nReplacing server database ' + new Date().toLocaleTimeString());
+    // create a new MongoClient
     const client = new MongoClient(url, { useUnifiedTopology: true });
     try {
         await client.connect();
         const db = client.db(dbName);
         const collection = db.collection(serverCollectionName);
         const data = await queryUrl();
-        
+        const serverData = [];
         for (const [key, value] of Object.entries(data)) {
-            const players = await queryServer( value.IP.split(':')[0], value.IP.split(':')[1] );
-            const serverData = {
+            const server = {
                 serverShortName: value.ServerShortName,
-                ip: value.IP,
-                map: value.Map,
-                playerCount: value.PlayerCount,
-                maxPlayers: value.MaxPlayers,
                 serverName: value.ServerName,
-                extraInfo: value.ExtraInfo || '',
-                players: players || [],
+                ip: value.IP,
+                players: await queryServer(value.Ip.split(':')[0], value.Ip.split(':')[1]),
                 lastUpdated: new Date()
             };
-            
-            const query = { serverShortName: serverData.serverShortName };
-            const update = { $setOnInsert: serverData };
-            const options = { upsert: true };
-      
-            await collection.updateOne(query, update, options);
+            serverData.push(server);
         }
+        await collection.deleteMany({});
+        await collection.insertMany(serverData);
     } catch (error) {
         console.error(error);
-    } finally {
+    }
+    finally {
         await client.close();
     }
+
 };
 
 const updateMapDatabase = async () => {
