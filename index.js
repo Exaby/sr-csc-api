@@ -45,7 +45,6 @@ const updateServerDatabase = async () => {
             const cscServerData = await queryServer(serverShortName);
             const playerList = cscServerData.PlayerList;
             const teamList = cscServerData.TeamList;
-            console.log(teamList)
             const server = {
                 serverName: value.ServerName,
                 serverShortName: value.ServerShortName,
